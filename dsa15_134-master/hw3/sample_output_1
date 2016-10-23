@@ -1,0 +1,303 @@
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `12`
+	[Push to Output] `12`
+[Output] 12
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `*`
+	[Flush Stack] flush until the precedence of the top element is lesser then `*`
+	[Push to Stack] `*`
+[Output] 12
+[Stack] ( *
+[Token Processing] done
+[Token Processing] encounter a `10`
+	[Push to Output] `10`
+[Output] 12 10
+[Stack] ( *
+[Token Processing] done
+[Token Processing] encounter a `/`
+	[Flush Stack] flush until the precedence of the top element is lesser then `/`
+		[Push to Output] `*`
+	[Push to Stack] `/`
+[Output] 12 10 *
+[Stack] ( /
+[Token Processing] done
+[Token Processing] encounter a `5`
+	[Push to Output] `5`
+[Output] 12 10 * 5
+[Stack] ( /
+[Token Processing] done
+[Token Processing] encounter a `+`
+	[Flush Stack] flush until the precedence of the top element is lesser then `+`
+		[Push to Output] `/`
+	[Push to Stack] `+`
+[Output] 12 10 * 5 /
+[Stack] ( +
+[Token Processing] done
+[Token Processing] encounter a `unary-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `unary-`
+	[Push to Stack] `unary-`
+[Output] 12 10 * 5 /
+[Stack] ( + unary-
+[Token Processing] done
+[Token Processing] encounter a `7`
+	[Push to Output] `7`
+[Output] 12 10 * 5 / 7
+[Stack] ( + unary-
+[Token Processing] done
+[Token Processing] encounter a `-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `-`
+		[Push to Output] `unary-`
+		[Push to Output] `+`
+	[Push to Stack] `-`
+[Output] 12 10 * 5 / 7 unary- +
+[Stack] ( -
+[Token Processing] done
+[Token Processing] encounter a `unary+`
+	[Flush Stack] flush until the precedence of the top element is lesser then `unary+`
+	[Push to Stack] `unary+`
+[Output] 12 10 * 5 / 7 unary- +
+[Stack] ( - unary+
+[Token Processing] done
+[Token Processing] encounter a `8`
+	[Push to Output] `8`
+[Output] 12 10 * 5 / 7 unary- + 8
+[Stack] ( - unary+
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `unary+`
+		[Push to Output] `-`
+[Flush Stack] pop `(` from stack
+[Output] 12 10 * 5 / 7 unary- + 8 unary+ -
+[Stack]
+[Token Processing] done
+[Token Processing] encounter a `%`
+	[Flush Stack] flush until the precedence of the top element is lesser then `%`
+	[Push to Stack] `%`
+[Output] 12 10 * 5 / 7 unary- + 8 unary+ -
+[Stack] %
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output] 12 10 * 5 / 7 unary- + 8 unary+ -
+[Stack] % (
+[Token Processing] done
+[Token Processing] encounter a `19`
+	[Push to Output] `19`
+[Output] 12 10 * 5 / 7 unary- + 8 unary+ - 19
+[Stack] % (
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+[Flush Stack] pop `(` from stack
+[Output] 12 10 * 5 / 7 unary- + 8 unary+ - 19
+[Stack] %
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `%`
+[Infix to Postfix] done
+Postfix Exp: 12 10 * 5 / 7 - + 8 + - 19 %
+RESULT: 9
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] ( (
+[Token Processing] done
+[Token Processing] encounter a `~`
+	[Flush Stack] flush until the precedence of the top element is lesser then `~`
+	[Push to Stack] `~`
+[Output]
+[Stack] ( ( ~
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] ( ( ~ (
+[Token Processing] done
+[Token Processing] encounter a `12`
+	[Push to Output] `12`
+[Output] 12
+[Stack] ( ( ~ (
+[Token Processing] done
+[Token Processing] encounter a `&`
+	[Flush Stack] flush until the precedence of the top element is lesser then `&`
+	[Push to Stack] `&`
+[Output] 12
+[Stack] ( ( ~ ( &
+[Token Processing] done
+[Token Processing] encounter a `15`
+	[Push to Output] `15`
+[Output] 12 15
+[Stack] ( ( ~ ( &
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `&`
+[Flush Stack] pop `(` from stack
+[Output] 12 15 &
+[Stack] ( ( ~
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `~`
+[Flush Stack] pop `(` from stack
+[Output] 12 15 & ~
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `|`
+	[Flush Stack] flush until the precedence of the top element is lesser then `|`
+	[Push to Stack] `|`
+[Output] 12 15 & ~
+[Stack] ( |
+[Token Processing] done
+[Token Processing] encounter a `102938`
+	[Push to Output] `102938`
+[Output] 12 15 & ~ 102938
+[Stack] ( |
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `|`
+[Flush Stack] pop `(` from stack
+[Output] 12 15 & ~ 102938 |
+[Stack]
+[Token Processing] done
+[Token Processing] encounter a `>>`
+	[Flush Stack] flush until the precedence of the top element is lesser then `>>`
+	[Push to Stack] `>>`
+[Output] 12 15 & ~ 102938 |
+[Stack] >>
+[Token Processing] done
+[Token Processing] encounter a `5`
+	[Push to Output] `5`
+[Output] 12 15 & ~ 102938 | 5
+[Stack] >>
+[Token Processing] done
+[Token Processing] encounter a `<<`
+	[Flush Stack] flush until the precedence of the top element is lesser then `<<`
+		[Push to Output] `>>`
+	[Push to Stack] `<<`
+[Output] 12 15 & ~ 102938 | 5 >>
+[Stack] <<
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output] 12 15 & ~ 102938 | 5 >>
+[Stack] << (
+[Token Processing] done
+[Token Processing] encounter a `5`
+	[Push to Output] `5`
+[Output] 12 15 & ~ 102938 | 5 >> 5
+[Stack] << (
+[Token Processing] done
+[Token Processing] encounter a `^`
+	[Flush Stack] flush until the precedence of the top element is lesser then `^`
+	[Push to Stack] `^`
+[Output] 12 15 & ~ 102938 | 5 >> 5
+[Stack] << ( ^
+[Token Processing] done
+[Token Processing] encounter a `12`
+	[Push to Output] `12`
+[Output] 12 15 & ~ 102938 | 5 >> 5 12
+[Stack] << ( ^
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `^`
+[Flush Stack] pop `(` from stack
+[Output] 12 15 & ~ 102938 | 5 >> 5 12 ^
+[Stack] <<
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `<<`
+[Infix to Postfix] done
+Postfix Exp: 12 15 & ~ 102938 | 5 >> 5 12 ^ <<
+RESULT: -512
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] ( (
+[Token Processing] done
+[Token Processing] encounter a `!`
+	[Flush Stack] flush until the precedence of the top element is lesser then `!`
+	[Push to Stack] `!`
+[Output]
+[Stack] ( ( !
+[Token Processing] done
+[Token Processing] encounter a `!`
+	[Flush Stack] flush until the precedence of the top element is lesser then `!`
+	[Push to Stack] `!`
+[Output]
+[Stack] ( ( ! !
+[Token Processing] done
+[Token Processing] encounter a `12`
+	[Push to Output] `12`
+[Output] 12
+[Stack] ( ( ! !
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `!`
+		[Push to Output] `!`
+[Flush Stack] pop `(` from stack
+[Output] 12 ! !
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `||`
+	[Flush Stack] flush until the precedence of the top element is lesser then `||`
+	[Push to Stack] `||`
+[Output] 12 ! !
+[Stack] ( ||
+[Token Processing] done
+[Token Processing] encounter a `0`
+	[Push to Output] `0`
+[Output] 12 ! ! 0
+[Stack] ( ||
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `||`
+[Flush Stack] pop `(` from stack
+[Output] 12 ! ! 0 ||
+[Stack]
+[Token Processing] done
+[Token Processing] encounter a `&&`
+	[Flush Stack] flush until the precedence of the top element is lesser then `&&`
+	[Push to Stack] `&&`
+[Output] 12 ! ! 0 ||
+[Stack] &&
+[Token Processing] done
+[Token Processing] encounter a `1`
+	[Push to Output] `1`
+[Output] 12 ! ! 0 || 1
+[Stack] &&
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `&&`
+[Infix to Postfix] done
+Postfix Exp: 12 ! ! 0 || 1 &&
+RESULT: 1

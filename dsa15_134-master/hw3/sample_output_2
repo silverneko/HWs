@@ -1,0 +1,306 @@
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] (
+[Token Processing] done
+[Token Processing] encounter a `sin`
+	[Flush Stack] flush until the precedence of the top element is lesser then `sin`
+	[Push to Stack] `sin`
+[Output]
+[Stack] ( sin
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] ( sin (
+[Token Processing] done
+[Token Processing] encounter a `3.1415926`
+	[Push to Output] `3.1415926`
+[Output] 3.1415926
+[Stack] ( sin (
+[Token Processing] done
+[Token Processing] encounter a `/`
+	[Flush Stack] flush until the precedence of the top element is lesser then `/`
+	[Push to Stack] `/`
+[Output] 3.1415926
+[Stack] ( sin ( /
+[Token Processing] done
+[Token Processing] encounter a `2`
+	[Push to Output] `2`
+[Output] 3.1415926 2
+[Stack] ( sin ( /
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `/`
+[Flush Stack] pop `(` from stack
+[Output] 3.1415926 2 /
+[Stack] ( sin
+[Token Processing] done
+[Token Processing] encounter a `*`
+	[Flush Stack] flush until the precedence of the top element is lesser then `*`
+		[Push to Output] `sin`
+	[Push to Stack] `*`
+[Output] 3.1415926 2 / sin
+[Stack] ( *
+[Token Processing] done
+[Token Processing] encounter a `cos`
+	[Flush Stack] flush until the precedence of the top element is lesser then `cos`
+	[Push to Stack] `cos`
+[Output] 3.1415926 2 / sin
+[Stack] ( * cos
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output] 3.1415926 2 / sin
+[Stack] ( * cos (
+[Token Processing] done
+[Token Processing] encounter a `unary+`
+	[Flush Stack] flush until the precedence of the top element is lesser then `unary+`
+	[Push to Stack] `unary+`
+[Output] 3.1415926 2 / sin
+[Stack] ( * cos ( unary+
+[Token Processing] done
+[Token Processing] encounter a `3.1415926`
+	[Push to Output] `3.1415926`
+[Output] 3.1415926 2 / sin 3.1415926
+[Stack] ( * cos ( unary+
+[Token Processing] done
+[Token Processing] encounter a `+`
+	[Flush Stack] flush until the precedence of the top element is lesser then `+`
+		[Push to Output] `unary+`
+	[Push to Stack] `+`
+[Output] 3.1415926 2 / sin 3.1415926 unary+
+[Stack] ( * cos ( +
+[Token Processing] done
+[Token Processing] encounter a `3.1415926`
+	[Push to Output] `3.1415926`
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926
+[Stack] ( * cos ( +
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `+`
+[Flush Stack] pop `(` from stack
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926 +
+[Stack] ( * cos
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `cos`
+		[Push to Output] `*`
+[Flush Stack] pop `(` from stack
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926 + cos *
+[Stack]
+[Token Processing] done
+[Token Processing] encounter a `*`
+	[Flush Stack] flush until the precedence of the top element is lesser then `*`
+	[Push to Stack] `*`
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926 + cos *
+[Stack] *
+[Token Processing] done
+[Token Processing] encounter a `unary-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `unary-`
+	[Push to Stack] `unary-`
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926 + cos *
+[Stack] * unary-
+[Token Processing] done
+[Token Processing] encounter a `123.456789`
+	[Push to Output] `123.456789`
+[Output] 3.1415926 2 / sin 3.1415926 unary+ 3.1415926 + cos * 123.456789
+[Stack] * unary-
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `unary-`
+	[Push to Output] `*`
+[Infix to Postfix] done
+Postfix Exp: 3.141593 2.000000 / sin 3.141593 + 3.141593 + cos * 123.456789 - *
+RESULT: -123.456789
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `sqrt`
+	[Flush Stack] flush until the precedence of the top element is lesser then `sqrt`
+	[Push to Stack] `sqrt`
+[Output]
+[Stack] sqrt
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] sqrt (
+[Token Processing] done
+[Token Processing] encounter a `1213123`
+	[Push to Output] `1213123`
+[Output] 1213123
+[Stack] sqrt (
+[Token Processing] done
+[Token Processing] encounter a `-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `-`
+	[Push to Stack] `-`
+[Output] 1213123
+[Stack] sqrt ( -
+[Token Processing] done
+[Token Processing] encounter a `345363`
+	[Push to Output] `345363`
+[Output] 1213123 345363
+[Stack] sqrt ( -
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `-`
+[Flush Stack] pop `(` from stack
+[Output] 1213123 345363 -
+[Stack] sqrt
+[Token Processing] done
+[Token Processing] encounter a `+`
+	[Flush Stack] flush until the precedence of the top element is lesser then `+`
+		[Push to Output] `sqrt`
+	[Push to Stack] `+`
+[Output] 1213123 345363 - sqrt
+[Stack] +
+[Token Processing] done
+[Token Processing] encounter a `exp`
+	[Flush Stack] flush until the precedence of the top element is lesser then `exp`
+	[Push to Stack] `exp`
+[Output] 1213123 345363 - sqrt
+[Stack] + exp
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output] 1213123 345363 - sqrt
+[Stack] + exp (
+[Token Processing] done
+[Token Processing] encounter a `12`
+	[Push to Output] `12`
+[Output] 1213123 345363 - sqrt 12
+[Stack] + exp (
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+[Flush Stack] pop `(` from stack
+[Output] 1213123 345363 - sqrt 12
+[Stack] + exp
+[Token Processing] done
+[Token Processing] encounter a `-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `-`
+		[Push to Output] `exp`
+		[Push to Output] `+`
+	[Push to Stack] `-`
+[Output] 1213123 345363 - sqrt 12 exp +
+[Stack] -
+[Token Processing] done
+[Token Processing] encounter a `pow`
+	[Flush Stack] flush until the precedence of the top element is lesser then `pow`
+	[Push to Stack] `pow`
+[Output] 1213123 345363 - sqrt 12 exp +
+[Stack] - pow
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output] 1213123 345363 - sqrt 12 exp +
+[Stack] - pow (
+[Token Processing] done
+[Token Processing] encounter a `455234.834`
+	[Push to Output] `455234.834`
+[Output] 1213123 345363 - sqrt 12 exp + 455234.834
+[Stack] - pow (
+[Token Processing] done
+[Token Processing] encounter a `,`
+	[Flush Stack] flush stack until first `(`
+[Output] 1213123 345363 - sqrt 12 exp + 455234.834
+[Stack] - pow (
+[Token Processing] done
+[Token Processing] encounter a `.235`
+	[Push to Output] `.235`
+[Output] 1213123 345363 - sqrt 12 exp + 455234.834 .235
+[Stack] - pow (
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+[Flush Stack] pop `(` from stack
+[Output] 1213123 345363 - sqrt 12 exp + 455234.834 .235
+[Stack] - pow
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `pow`
+	[Push to Output] `-`
+[Infix to Postfix] done
+Postfix Exp: 1213123.000000 345363.000000 - sqrt 12.000000 exp + 455234.834000 0.235000 pow -
+RESULT: 163664.963648
+[Input Parsing] parse input into tokens
+[Input Parsing] done
+[Infix to Postfix] start
+[Token Processing] encounter a `exp`
+	[Flush Stack] flush until the precedence of the top element is lesser then `exp`
+	[Push to Stack] `exp`
+[Output]
+[Stack] exp
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] exp (
+[Token Processing] done
+[Token Processing] encounter a `log`
+	[Flush Stack] flush until the precedence of the top element is lesser then `log`
+	[Push to Stack] `log`
+[Output]
+[Stack] exp ( log
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] exp ( log (
+[Token Processing] done
+[Token Processing] encounter a `fabs`
+	[Flush Stack] flush until the precedence of the top element is lesser then `fabs`
+	[Push to Stack] `fabs`
+[Output]
+[Stack] exp ( log ( fabs
+[Token Processing] done
+[Token Processing] encounter a `(`
+	[Push to Stack] `(`
+[Output]
+[Stack] exp ( log ( fabs (
+[Token Processing] done
+[Token Processing] encounter a `unary-`
+	[Flush Stack] flush until the precedence of the top element is lesser then `unary-`
+	[Push to Stack] `unary-`
+[Output]
+[Stack] exp ( log ( fabs ( unary-
+[Token Processing] done
+[Token Processing] encounter a `129.3254`
+	[Push to Output] `129.3254`
+[Output] 129.3254
+[Stack] exp ( log ( fabs ( unary-
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `unary-`
+[Flush Stack] pop `(` from stack
+[Output] 129.3254 unary-
+[Stack] exp ( log ( fabs
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `fabs`
+[Flush Stack] pop `(` from stack
+[Output] 129.3254 unary- fabs
+[Stack] exp ( log
+[Token Processing] done
+[Token Processing] encounter a `)`
+	[Flush Stack] flush stack until first `(`
+		[Push to Output] `log`
+[Flush Stack] pop `(` from stack
+[Output] 129.3254 unary- fabs log
+[Stack] exp
+[Token Processing] done
+[Flush Stack] clear the whole stack
+	[Push to Output] `exp`
+[Infix to Postfix] done
+Postfix Exp: 129.325400 - fabs log exp
+RESULT: 129.325400
