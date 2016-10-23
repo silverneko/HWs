@@ -114,6 +114,7 @@ static int load_models( const char *listname, HMM *hmm, const int max_num )
       count ++;
 
       if( count >= max_num ){
+         fclose(fp);
          return count;
       }
    }

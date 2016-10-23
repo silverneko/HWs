@@ -1,8 +1,6 @@
-#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -13,7 +11,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
   if (argc != 5) {
     fprintf(stderr,
-            "Usage: %s [iter] [init model] [train data] [output model]\n",
+            "Usage: %s [iterations] [init model] [train data] [output model]\n",
             argv[0]);
     exit(1);
   }
@@ -62,13 +60,13 @@ int main(int argc, char *argv[]) {
       // Calculate PObserve (P[o'])
       double PObserve = 0.0;
       for (int i = 0; i < StateNum; ++i) {
-        PObserve += Alpha[ObservationNum - 1][i];
+        PObserve += Alpha[ObservationNum-1][i];
       }
 
       // Calculate backward variable (P[o'[t+1:T]| q_t = i])
       double Beta[MAX_SEQ][MAX_STATE] = {0.0};
       for (int i = 0; i < StateNum; ++i) {
-        Beta[ObservationNum - 1][i] = 1.0;
+        Beta[ObservationNum-1][i] = 1.0;
       }
       for (int t = ObservationNum - 2; t >= 0; --t) {
         for (int i = 0; i < StateNum; ++i) {
