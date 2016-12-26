@@ -72,6 +72,7 @@ int main(int argc, char *argv[]) {
   lseek(fd, 0, SEEK_SET);
   unsigned int max_seq = 1 + (file_size - 1) / 1000;
   unsigned int send_base = 0, next_seq = 1, threshold = 16, cwnd = 1;
+  unsigned int cwnd_linear_grow = 0;
   char buf[1024], packet_buf[2000];
   vector<bool> ACKed(max_seq + 1); // seq 0 is not used
   vector<bool> resend(max_seq + 1); // seq 0 is not used
@@ -120,7 +121,15 @@ int main(int argc, char *argv[]) {
           ACKed[ack] = true;
           while (send_base + 1 < next_seq && ACKed[send_base + 1]) {
             ++send_base;
-            cwnd += 1;
+            if (cwnd >= threshold) {
+              ++cwnd_linear_grow;
+              if (cwnd_linear_grow == cwnd) {
+                cwnd += 1;
+                cwnd_linear_grow = 0;
+              }
+            } else {
+              cwnd += 1;
+            }
             start_timer();
           }
         }
@@ -132,9 +141,11 @@ int main(int argc, char *argv[]) {
       // Check if there is any unACK packet
       if (send_base + 1 < next_seq) {
         // Retransmit from send_base + 1
-        printf("time\tout,\t\tthreshold = %u\n", threshold);
+        threshold = max(1u, cwnd / 2);
         cwnd = 1;
+        cwnd_linear_grow = 0;
         next_seq = send_base + 1;
+        printf("time\tout,\t\tthreshold = %u\n", threshold);
       }
     }
   }
