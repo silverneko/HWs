@@ -34,9 +34,6 @@ int main(int argc, char *argv[]) {
     }
 
     TCPHeader *tcp_header = (TCPHeader*)buf;
-    char *payload = buf + sizeof(TCPHeader);
-    unsigned int payload_size = tcp_header->payload_size;
-
     struct sockaddr_in dest_addr = {
       .sin_family = AF_INET,
       .sin_port = tcp_header->dest_port,
@@ -46,6 +43,27 @@ int main(int argc, char *argv[]) {
                            (struct sockaddr*) &dest_addr, sizeof(dest_addr));
     if (sent_size < 0 || sent_size != recv_size) {
       perror("Error while sending packet");
+    }
+
+    unsigned int seq = tcp_header->seq;
+    unsigned int ack = tcp_header->ack;
+    switch (tcp_header->type) {
+      case DATA:
+        printf("get\tdata\t#%u\n", seq);
+        printf("fwd\tdata\t#%u\n", seq);
+        break;
+      case ACK:
+        printf("get\tack\t#%u\n", ack);
+        printf("fwd\tack\t#%u\n", ack);
+        break;
+      case FIN:
+        printf("get\tfin\n");
+        printf("fwd\tfin\n");
+        break;
+      case FINACK:
+        printf("get\tfinack\n");
+        printf("fwd\tfinack\n");
+        break;
     }
   }
 
