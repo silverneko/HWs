@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <cstdio>
 #include <iostream>
 
@@ -5,17 +6,81 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <getopt.h>
 
-#include "Ports.h"
 #include "TCP.h"
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " [Output file name]" << "\n";
+  unsigned short listen_port = 7002;
+  char agent_addr[20] = "127.0.0.1";
+  unsigned short agent_port = 7001;
+  char sender_addr[20] = "127.0.0.1";
+  unsigned short sender_port = 7000;
+  unsigned int buffer_size = 32;
+  char *file_name = NULL;
+
+  static struct option long_options[] = {
+    {"listen-port",   required_argument,    NULL,   'l'},
+    {"agent",         required_argument,    NULL,   'a'},
+    {"sender",        required_argument,    NULL,   's'},
+    {"buffer-size",   required_argument,    NULL,   'b'},
+    {"help",          no_argument,          NULL,   'h'},
+    {0, 0, 0, 0}
+  };
+
+  while (true) {
+    int option_index;
+    int c = getopt_long_only(argc, argv, "", long_options, &option_index);
+    if (c == -1) {
+      break;
+    }
+    switch (c) {
+    case 'l':
+      listen_port = atoi(optarg);
+      break;
+    case 'a':
+      {
+        int i = 0;
+        while (optarg[i] != '\0' && optarg[i] != ':')
+          ++i;
+        if (optarg[i] == ':') {
+          optarg[i] = '\0';
+          strcpy(agent_addr, optarg);
+          agent_port = atoi(&optarg[i+1]);
+        }
+      }
+      break;
+    case 's':
+      {
+        int i = 0;
+        while (optarg[i] != '\0' && optarg[i] != ':')
+          ++i;
+        if (optarg[i] == ':') {
+          optarg[i] = '\0';
+          strcpy(sender_addr, optarg);
+          sender_port = atoi(&optarg[i+1]);
+        }
+      }
+      break;
+    case 'b':
+      buffer_size = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+              "[-s sender_addr] [-b buffer_size] [File path]\n", argv[0]);
+      exit(1);
+    }
+  }
+
+  if (optind >= argc) {
+    fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+            "[-s sender_addr] [-b buffer_size] [File path]\n", argv[0]);
     exit(1);
   }
+  file_name = argv[optind];
 
   int send_socket = socket(AF_INET, SOCK_DGRAM, 0);
   int recv_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -26,32 +91,32 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in addr = {
     .sin_family = AF_INET,
-    .sin_port = htons(RECEIVER_PORT),
+    .sin_port = htons(listen_port),
   };
-  inet_aton(RECEIVER_ADDR, &addr.sin_addr);
+  inet_aton("127.0.0.1", &addr.sin_addr);
   if (bind(recv_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
     perror("[Fatal] Fail to bind addr");
     exit(1);
   }
-  addr.sin_port = htons(AGENT_PORT);
-  inet_aton(AGENT_ADDR, &addr.sin_addr);
+  addr.sin_port = htons(agent_port);
+  inet_aton(agent_addr, &addr.sin_addr);
   if (connect(send_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
     perror("[Fatal] Fail to connect to agent");
     exit(1);
   }
 
-  int fd = open(argv[1], O_CREAT | O_TRUNC | O_WRONLY, 0666);
+  int fd = open(file_name, O_CREAT | O_TRUNC | O_WRONLY, 0666);
   if (fd < 0) {
     perror("[Fatal] Fail to create output file");
     exit(1);
   }
 
   TCPHeader ack_packet;
-  ack_packet.dest_port = htons(SENDER_PORT);
+  ack_packet.dest_port = htons(sender_port);
   ack_packet.type = ACK;
-  inet_aton(SENDER_ADDR, &ack_packet.dest_addr);
+  inet_aton(sender_addr, &ack_packet.dest_addr);
 
-  const unsigned int rwnd = 32;
+  const unsigned int rwnd = max(1u, buffer_size);
   unsigned int recv_base = 0;
   char recv_buf[rwnd][2000] = {0};
   bool recvd[rwnd] = {false};

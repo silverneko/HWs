@@ -1,5 +1,5 @@
+#include <cstdlib>
 #include <cstdio>
-#include <iostream>
 #include <vector>
 
 #include <arpa/inet.h>
@@ -7,8 +7,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <getopt.h>
 
-#include "Ports.h"
 #include "TCP.h"
 
 using namespace std;
@@ -22,10 +22,74 @@ static inline uint32_t raid6_jiffies() {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " [Data file to send]" << "\n";
+  unsigned short listen_port = 7000;
+  char agent_addr[20] = "127.0.0.1";
+  unsigned short agent_port = 7001;
+  char receiver_addr[20] = "127.0.0.1";
+  unsigned short receiver_port = 7002;
+  unsigned int threshold = 16;
+  char *file_name = NULL;
+
+  static struct option long_options[] = {
+    {"listen-port",   required_argument,    NULL,   'l'},
+    {"agent",         required_argument,    NULL,   'a'},
+    {"receiver",      required_argument,    NULL,   'r'},
+    {"threshold",     required_argument,    NULL,   't'},
+    {"help",          no_argument,          NULL,   'h'},
+    {0, 0, 0, 0}
+  };
+
+  while (true) {
+    int option_index;
+    int c = getopt_long_only(argc, argv, "", long_options, &option_index);
+    if (c == -1) {
+      break;
+    }
+    switch (c) {
+    case 'l':
+      listen_port = atoi(optarg);
+      break;
+    case 'a':
+      {
+        int i = 0;
+        while (optarg[i] != '\0' && optarg[i] != ':')
+          ++i;
+        if (optarg[i] == ':') {
+          optarg[i] = '\0';
+          strcpy(agent_addr, optarg);
+          agent_port = atoi(&optarg[i+1]);
+        }
+      }
+      break;
+    case 'r':
+      {
+        int i = 0;
+        while (optarg[i] != '\0' && optarg[i] != ':')
+          ++i;
+        if (optarg[i] == ':') {
+          optarg[i] = '\0';
+          strcpy(receiver_addr, optarg);
+          receiver_port = atoi(&optarg[i+1]);
+        }
+      }
+      break;
+    case 't':
+      threshold = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+              "[-r receiver_addr] [-t threshold] [File to send]\n", argv[0]);
+      exit(1);
+    }
+  }
+
+  if (optind >= argc) {
+    fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+            "[-r receiver_addr] [-t threshold] [File to send]\n", argv[0]);
     exit(1);
   }
+  file_name = argv[optind];
 
   int send_socket = socket(AF_INET, SOCK_DGRAM, 0);
   int recv_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -36,31 +100,32 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in addr = {
     .sin_family = AF_INET,
-    .sin_port = htons(SENDER_PORT),
+    .sin_port = htons(listen_port),
   };
-  inet_aton(SENDER_ADDR, &addr.sin_addr);
+  inet_aton("127.0.0.1", &addr.sin_addr);
   if (bind(recv_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
     perror("[Fatal] Fail to bind addr");
     exit(1);
   }
-  addr.sin_port = htons(AGENT_PORT);
-  inet_aton(AGENT_ADDR, &addr.sin_addr);
+  addr.sin_port = htons(agent_port);
+  inet_aton(agent_addr, &addr.sin_addr);
   if (connect(send_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
     perror("[Fatal] Fail to connect to agent");
     exit(1);
   }
 
-  int fd = open(argv[1], O_RDONLY);
+  int fd = open(file_name, O_RDONLY);
   if (fd < 0) {
     perror("[Fatal] Fail to open data file");
     exit(1);
   }
 
   TCPHeader tcp_header;
-  tcp_header.dest_port = htons(RECEIVER_PORT);
+  tcp_header.dest_port = htons(receiver_port);
   tcp_header.type = DATA;
-  inet_aton(RECEIVER_ADDR, &tcp_header.dest_addr);
+  inet_aton(receiver_addr, &tcp_header.dest_addr);
 
+  // timeout = 100 millisecond = 0.1 second
   unsigned int timeout_value = 100;
   unsigned int timer_base = 0;
   bool timer_armed = false;
@@ -71,7 +136,7 @@ int main(int argc, char *argv[]) {
   unsigned int file_size = lseek(fd, 0, SEEK_END);
   lseek(fd, 0, SEEK_SET);
   unsigned int max_seq = 1 + (file_size - 1) / 1000;
-  unsigned int send_base = 0, next_seq = 1, threshold = 16, cwnd = 1;
+  unsigned int send_base = 0, next_seq = 1, cwnd = 1;
   unsigned int cwnd_linear_grow = 0;
   char buf[1024], packet_buf[2000];
   vector<bool> ACKed(max_seq + 1); // seq 0 is not used
