@@ -1,4 +1,7 @@
+#include <cstdio>
 #include <iostream>
+#include <random>
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <fcntl.h>
@@ -8,6 +11,21 @@
 #include "TCP.h"
 
 using namespace std;
+
+int randint(int lb, int ub) {
+  static std::mt19937 RNG(0x5EED);
+  return std::uniform_int_distribution<int>(lb, ub)(RNG);
+}
+
+float randreal(float lb, float ub) {
+  static std::mt19937 RNG(0x5EED);
+  return std::uniform_real_distribution<float>(lb, ub)(RNG);
+}
+
+bool flip_coin(float true_rate) {
+  float x = randreal(0, 1);
+  return x < true_rate;
+}
 
 int main(int argc, char *argv[]) {
   int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
@@ -26,7 +44,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  float loss_rate = 0.1;
   char buf[2000];
+  unsigned int recv_count = 0, drop_count = 0;
   while (int recv_size = recv(udp_socket, buf, 2000, 0)) {
     if (recv_size < 0) {
       perror("Error while receiving data");
@@ -39,18 +59,34 @@ int main(int argc, char *argv[]) {
       .sin_port = tcp_header->dest_port,
       .sin_addr = tcp_header->dest_addr
     };
-    int sent_size = sendto(udp_socket, buf, recv_size, 0,
-                           (struct sockaddr*) &dest_addr, sizeof(dest_addr));
-    if (sent_size < 0 || sent_size != recv_size) {
-      perror("Error while sending packet");
+
+    bool drop_packet = false;
+    if (tcp_header->type == DATA) {
+      drop_packet = flip_coin(loss_rate);
+    }
+
+    if (!drop_packet) {
+      int sent_size = sendto(udp_socket, buf, recv_size, 0,
+                             (struct sockaddr*) &dest_addr, sizeof(dest_addr));
+      if (sent_size < 0 || sent_size != recv_size) {
+        perror("Error while sending packet");
+      }
     }
 
     unsigned int seq = tcp_header->seq;
     unsigned int ack = tcp_header->ack;
     switch (tcp_header->type) {
       case DATA:
+        ++recv_count;
         printf("get\tdata\t#%u\n", seq);
-        printf("fwd\tdata\t#%u\n", seq);
+        if (!drop_packet) {
+          printf("fwd\tdata\t#%u,\tloss rate = %f\n", seq,
+                 (float)drop_count / recv_count);
+        } else {
+          ++drop_count;
+          printf("drop\tdata\t#%u,\tloss rate = %f\n", seq,
+                 (float)drop_count / recv_count);
+        }
         break;
       case ACK:
         printf("get\tack\t#%u\n", ack);
