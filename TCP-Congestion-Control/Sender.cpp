@@ -1,6 +1,8 @@
 #include <cstdlib>
 #include <cstdio>
 #include <vector>
+#include <string>
+#include <tuple>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -8,6 +10,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <getopt.h>
+#include <netdb.h>
 
 #include "TCP.h"
 
@@ -23,8 +26,7 @@ static inline uint32_t raid6_jiffies() {
 
 int main(int argc, char *argv[]) {
   unsigned short listen_port = 7000;
-  char agent_addr[20] = "127.0.0.1";
-  unsigned short agent_port = 7001;
+  vector<tuple<string, int>> agent_addrs;
   char receiver_addr[20] = "127.0.0.1";
   unsigned short receiver_port = 7002;
   unsigned int threshold = 16;
@@ -56,8 +58,7 @@ int main(int argc, char *argv[]) {
           ++i;
         if (optarg[i] == ':') {
           optarg[i] = '\0';
-          strcpy(agent_addr, optarg);
-          agent_port = atoi(&optarg[i+1]);
+          agent_addrs.emplace_back(optarg, atoi(&optarg[i+1]));
         }
       }
       break;
@@ -91,9 +92,12 @@ int main(int argc, char *argv[]) {
   }
   file_name = argv[optind];
 
-  int send_socket = socket(AF_INET, SOCK_DGRAM, 0);
+  if (agent_addrs.empty()) {
+    agent_addrs.emplace_back("localhost", 7001);
+  }
+
   int recv_socket = socket(AF_INET, SOCK_DGRAM, 0);
-  if (send_socket < 0 || recv_socket < 0) {
+  if (recv_socket < 0) {
     perror("[Fatal] Fail to create socket");
     exit(1);
   }
@@ -107,11 +111,21 @@ int main(int argc, char *argv[]) {
     perror("[Fatal] Fail to bind addr");
     exit(1);
   }
-  addr.sin_port = htons(agent_port);
-  inet_aton(agent_addr, &addr.sin_addr);
-  if (connect(send_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
-    perror("[Fatal] Fail to connect to agent");
-    exit(1);
+  vector<int> send_sockets;
+  for (int i = 0; i < agent_addrs.size(); ++i) {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+      perror("[Fatal] Fail to create socket");
+      exit(1);
+    }
+    addr.sin_port = htons(get<1>(agent_addrs[i]));
+    struct hostent *host = gethostbyname(get<0>(agent_addrs[i]).c_str());
+    addr.sin_addr = *(struct in_addr*)host->h_addr;
+    if (connect(sock, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
+      perror("[Fatal] Fail to connect to agent");
+      exit(1);
+    }
+    send_sockets.push_back(sock);
   }
 
   int fd = open(file_name, O_RDONLY);
@@ -123,7 +137,8 @@ int main(int argc, char *argv[]) {
   TCPHeader tcp_header;
   tcp_header.dest_port = htons(receiver_port);
   tcp_header.type = DATA;
-  inet_aton(receiver_addr, &tcp_header.dest_addr);
+  struct hostent *host = gethostbyname(receiver_addr);
+  tcp_header.dest_addr = *(struct in_addr*)host->h_addr;
 
   // timeout = 100 millisecond = 0.1 second
   unsigned int timeout_value = 100;
@@ -141,6 +156,7 @@ int main(int argc, char *argv[]) {
   char buf[1024], packet_buf[2000];
   vector<bool> ACKed(max_seq + 1); // seq 0 is not used
   vector<bool> resend(max_seq + 1); // seq 0 is not used
+  int send_sock_rr = 0;
 
   while (true) {
     if (next_seq > max_seq && send_base == max_seq) {
@@ -155,6 +171,8 @@ int main(int argc, char *argv[]) {
         continue;
       }
       unsigned int packet_size = make_packet(&tcp_header, buf, read_size, packet_buf);
+      int send_socket = send_sockets[send_sock_rr];
+      send_sock_rr = (send_sock_rr + 1) % send_sockets.size();
       int sent_size = send(send_socket, packet_buf, packet_size, 0);
       if (resend[next_seq]) {
         printf("resnd\tdata\t#%u,\twinSize = %u\n", next_seq, cwnd);
@@ -216,7 +234,7 @@ int main(int argc, char *argv[]) {
   }
 
   tcp_header.type = FIN;
-  int sent_size = send(send_socket, &tcp_header, sizeof(tcp_header), 0);
+  int sent_size = send(send_sockets[0], &tcp_header, sizeof(tcp_header), 0);
   printf("send\tfin\n");
   int recv_size;
   while ((recv_size = recv(recv_socket, packet_buf, 2000, 0)) > 0) {
@@ -228,7 +246,9 @@ int main(int argc, char *argv[]) {
   }
 
   close(fd);
-  close(send_socket);
+  for (int i = 0; i < send_sockets.size(); ++i) {
+    close(send_sockets[i]);
+  }
   close(recv_socket);
   return 0;
 }

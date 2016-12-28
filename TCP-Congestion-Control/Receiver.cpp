@@ -1,12 +1,13 @@
 #include <cstdlib>
 #include <cstdio>
-#include <algorithm>
+#include <vector>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <netdb.h>
 
 #include "TCP.h"
 
@@ -14,8 +15,6 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
   unsigned short listen_port = 7002;
-  char agent_addr[20] = "127.0.0.1";
-  unsigned short agent_port = 7001;
   char sender_addr[20] = "127.0.0.1";
   unsigned short sender_port = 7000;
   unsigned int buffer_size = 32;
@@ -23,7 +22,6 @@ int main(int argc, char *argv[]) {
 
   static struct option long_options[] = {
     {"listen-port",   required_argument,    NULL,   'l'},
-    {"agent",         required_argument,    NULL,   'a'},
     {"sender",        required_argument,    NULL,   's'},
     {"buffer-size",   required_argument,    NULL,   'b'},
     {"help",          no_argument,          NULL,   'h'},
@@ -39,18 +37,6 @@ int main(int argc, char *argv[]) {
     switch (c) {
     case 'l':
       listen_port = atoi(optarg);
-      break;
-    case 'a':
-      {
-        int i = 0;
-        while (optarg[i] != '\0' && optarg[i] != ':')
-          ++i;
-        if (optarg[i] == ':') {
-          optarg[i] = '\0';
-          strcpy(agent_addr, optarg);
-          agent_port = atoi(&optarg[i+1]);
-        }
-      }
       break;
     case 's':
       {
@@ -69,22 +55,22 @@ int main(int argc, char *argv[]) {
       break;
     case 'h':
     case '?':
-      fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+      fprintf(stderr, "Usage: %s [-l listen_port] "
               "[-s sender_addr] [-b buffer_size] [File path]\n", argv[0]);
       exit(1);
     }
   }
 
   if (optind >= argc) {
-    fprintf(stderr, "Usage: %s [-l listen_port] [-a agent_addr] "
+    fprintf(stderr, "Usage: %s [-l listen_port] "
             "[-s sender_addr] [-b buffer_size] [File path]\n", argv[0]);
     exit(1);
   }
   file_name = argv[optind];
 
-  int send_socket = socket(AF_INET, SOCK_DGRAM, 0);
   int recv_socket = socket(AF_INET, SOCK_DGRAM, 0);
-  if (send_socket < 0 || recv_socket < 0) {
+  int send_socket = socket(AF_INET, SOCK_DGRAM, 0);
+  if (recv_socket < 0 || send_socket < 0) {
     perror("[Fatal] Fail to create socket");
     exit(1);
   }
@@ -98,12 +84,6 @@ int main(int argc, char *argv[]) {
     perror("[Fatal] Fail to bind addr");
     exit(1);
   }
-  addr.sin_port = htons(agent_port);
-  inet_aton(agent_addr, &addr.sin_addr);
-  if (connect(send_socket, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
-    perror("[Fatal] Fail to connect to agent");
-    exit(1);
-  }
 
   int fd = open(file_name, O_CREAT | O_TRUNC | O_WRONLY, 0666);
   if (fd < 0) {
@@ -114,7 +94,8 @@ int main(int argc, char *argv[]) {
   TCPHeader ack_packet;
   ack_packet.dest_port = htons(sender_port);
   ack_packet.type = ACK;
-  inet_aton(sender_addr, &ack_packet.dest_addr);
+  struct hostent *host = gethostbyname(sender_addr);
+  ack_packet.dest_addr = *(struct in_addr*)host->h_addr;
 
   const unsigned int rwnd = max(1u, buffer_size);
   unsigned int recv_base = 0;
@@ -122,7 +103,9 @@ int main(int argc, char *argv[]) {
   bool recvd[rwnd] = {false};
   int recvn = 0;
   char buf[2000];
-  while (int recv_size = recv(recv_socket, buf, 2000, 0)) {
+  struct sockaddr src_addr;
+  socklen_t addrlen = sizeof(struct sockaddr);
+  while (int recv_size = recvfrom(recv_socket, buf, 2000, 0, &src_addr, &addrlen)) {
     if (recv_size < 0) {
       perror("Error while receiving data");
       continue;
@@ -157,14 +140,14 @@ int main(int argc, char *argv[]) {
           printf("recv\tdata\t#%u\n", seq);
         }
         ack_packet.ack = seq;
-        send(send_socket, &ack_packet, sizeof(ack_packet), 0);
+        sendto(send_socket, &ack_packet, sizeof(ack_packet), 0, &src_addr, addrlen);
         printf("send\tack\t#%u\n", seq);
       }
       break;
     case FIN:
       printf("recv\tfin\n");
       ack_packet.type = FINACK;
-      send(send_socket, &ack_packet, sizeof(ack_packet), 0);
+      sendto(send_socket, &ack_packet, sizeof(ack_packet), 0, &src_addr, addrlen);
       printf("send\tfinack\n");
       for (int i = 0; i < rwnd && recvd[i]; ++i) {
         write(fd, recv_buf[i] + sizeof(TCPHeader),
