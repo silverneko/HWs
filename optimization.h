@@ -26,11 +26,15 @@ typedef struct list_head list_t;
 #define tcg_gen_brcond_ptr      tcg_gen_brcond_i32
 #define tcg_temp_free_ptr       tcg_temp_free_i32
 #define tcg_temp_local_new_ptr  tcg_temp_local_new_i32
+#define tcg_temp_new_tl         tcg_temp_new_i32
+#define tcg_temp_free_tl        tcg_temp_free_i32
 #else
 #define tcg_gen_st_ptr          tcg_gen_st_i64
 #define tcg_gen_brcond_ptr      tcg_gen_brcond_i64
 #define tcg_temp_free_ptr       tcg_temp_free_i64
 #define tcg_temp_local_new_ptr  tcg_temp_local_new_i64
+#define tcg_temp_new_tl         tcg_temp_new_i64
+#define tcg_temp_free_tl        tcg_temp_free_i64
 #endif
 
 #if TARGET_LONG_BITS == 32
@@ -42,12 +46,17 @@ typedef struct list_head list_t;
 #define MAX_CALL_SLOT   (16 * 1024)
 #define SHACK_SIZE      (16 * 1024)
 
-struct shadow_pair
+typedef struct shadow_pair
 {
-    struct list_head l;
     target_ulong guest_eip;
     unsigned long *shadow_slot;
-};
+    struct shadow_pair *next, *prev;
+} shadow_pair;
+
+typedef struct {
+    uint64_t source_addr;
+    uint64_t target_addr;
+} ShackSlot;
 
 void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip);
 inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot);
