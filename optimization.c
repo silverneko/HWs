@@ -13,7 +13,7 @@
 
 extern uint8_t *optimization_ret_addr;
 
-#define MEMORY_ARENA_CHUNK_SIZE (1 << 20)
+#define MEMORY_ARENA_CHUNK_SIZE (1 << 24)
 typedef struct MemoryArena {
     uint8_t chunk[MEMORY_ARENA_CHUNK_SIZE];
     unsigned int offset;
@@ -21,14 +21,22 @@ typedef struct MemoryArena {
     struct MemoryArena *prev;
 } MemoryArena;
 
-void* arena_alloc(MemoryArena **arena_p, unsigned int size) {
+MemoryArena *new_arena() {
+    MemoryArena *arena = (MemoryArena*) malloc(sizeof(MemoryArena));
+    arena->offset = 0;
+    arena->bytes_left = MEMORY_ARENA_CHUNK_SIZE;
+    arena->prev = NULL;
+    return arena;
+}
+
+void *arena_alloc(MemoryArena **arena_p, unsigned int size) {
     MemoryArena *arena = *arena_p;
     if (arena->bytes_left < size) {
-        MemoryArena *prev_arena = arena;
-        arena = (MemoryArena*) malloc(sizeof(MemoryArena));
-        arena->offset = 0;
-        arena->bytes_left = MEMORY_ARENA_CHUNK_SIZE;
-        arena->prev = prev_arena;
+        MemoryArena *new_arena = (MemoryArena*) malloc(sizeof(MemoryArena));
+        new_arena->offset = 0;
+        new_arena->bytes_left = MEMORY_ARENA_CHUNK_SIZE;
+        new_arena->prev = arena;
+        arena = new_arena;
         *arena_p = arena;
     }
     arena->bytes_left -= size;
@@ -42,7 +50,7 @@ MemoryArena *shack_arena, *shadow_hash_slot;
 /*
  * Shadow Stack
  */
-#define SHADOW_HASH_SIZE (1 << 14)
+#define SHADOW_HASH_SIZE (1 << 20)
 #define SHADOW_HASH_MASK (SHADOW_HASH_SIZE - 1)
 
 shadow_pair *shadow_hash_list[SHADOW_HASH_SIZE];
@@ -53,26 +61,24 @@ static inline void shack_init(CPUState *env)
     env->shack_top = env->shack;
     env->shack_end = ((ShackSlot*) env->shack) + SHACK_SIZE;
     memset(shadow_hash_list, 0, sizeof(shadow_pair*) * SHADOW_HASH_SIZE);
-    shack_arena = (MemoryArena*) malloc(sizeof(MemoryArena));
-    shack_arena->offset = 0;
-    shack_arena->bytes_left = MEMORY_ARENA_CHUNK_SIZE;
-    shack_arena->prev = NULL;
-    shadow_hash_slot = (MemoryArena*) malloc(sizeof(MemoryArena));
-    shadow_hash_slot->offset = 0;
-    shadow_hash_slot->bytes_left = MEMORY_ARENA_CHUNK_SIZE;
-    shadow_hash_slot->prev = NULL;
+    shack_arena = new_arena();
+    shadow_hash_slot = new_arena();
 }
 
 /*
  * shack_set_shadow()
  *  Insert a guest eip to host eip pair if it is not yet created.
  */
- void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip)
+void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip)
 {
     shadow_pair *it = shadow_hash_list[guest_eip & SHADOW_HASH_MASK];
     while (it != NULL) {
         if (it->guest_eip == guest_eip) {
             *it->shadow_slot = host_eip;
+            if (it->prev)
+                it->prev->next = it->next;
+            if (it->next)
+                it->next->prev = it->prev;
             break;
         }
         it = it->next;
@@ -85,9 +91,10 @@ static inline void shack_init(CPUState *env)
  */
 void helper_shack_flush(CPUState *env)
 {
+    // NOT USED
 }
 
-static TranslationBlock *tb_find_slow(CPUState *env,
+static inline TranslationBlock *tb_find_slow(CPUState *env,
                                       target_ulong pc,
                                       target_ulong cs_base,
                                       uint64_t flags)
@@ -129,7 +136,7 @@ static TranslationBlock *tb_find_slow(CPUState *env,
  not_found:
     // /* if no translated code available, then translate it now */
     // tb = tb_gen_code(env, pc, cs_base, flags, 0);
-    tb = NULL;
+    return NULL;
  found:
     /* we add the TB in the virtual pc hash table */
     env->tb_jmp_cache[tb_jmp_cache_hash_func(pc)] = tb;
@@ -162,13 +169,11 @@ static inline TranslationBlock *tb_find_fast(CPUState *env, target_ulong eip)
 void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
 {
     // fprintf(stderr, "push_shack: %x\n", env->segs[R_CS].base + next_eip);
-
     TCGv_ptr shack_top_p = tcg_temp_local_new_ptr();
     TCGv_ptr shack_end_p = tcg_temp_local_new_ptr();
     tcg_gen_ld_ptr(shack_top_p, cpu_env, offsetof(CPUState, shack_top));
     tcg_gen_ld_ptr(shack_end_p, cpu_env, offsetof(CPUState, shack_end));
     int label = gen_new_label();
-    // TODO: LT -> NE ?
     tcg_gen_brcond_ptr(TCG_COND_NE, shack_top_p, shack_end_p, label);
     tcg_temp_free_ptr(shack_end_p);
     // shack top == end, so shack full and need to flush
@@ -190,12 +195,16 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
         *target_addr_slot = tb->tc_ptr;
     } else {
         // target block not yet translated, insert hash entry
+        // FIXME
         // Let's just assume there don't exist entry of next_eip in hash
         // set already
         shadow_pair *new_node = arena_alloc(&shadow_hash_slot, sizeof(shadow_pair));
         new_node->guest_eip = next_eip;
         new_node->shadow_slot = target_addr_slot;
+        new_node->prev = NULL;
         new_node->next = shadow_hash_list[next_eip & SHADOW_HASH_MASK];
+        if (shadow_hash_list[next_eip & SHADOW_HASH_MASK])
+            shadow_hash_list[next_eip & SHADOW_HASH_MASK]->prev = new_node;
         shadow_hash_list[next_eip & SHADOW_HASH_MASK] = new_node;
     }
     TCGv_ptr t1 = tcg_const_ptr(target_addr_slot);
@@ -207,8 +216,6 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
     tcg_gen_addi_ptr(shack_top_p, shack_top_p, sizeof(ShackSlot));
     tcg_gen_st_ptr(shack_top_p, cpu_env, offsetof(CPUState, shack_top));
     tcg_temp_free_ptr(shack_top_p);
-
-    // fprintf(stderr, "push_shack: end\n");
 }
 
 /*
@@ -218,40 +225,41 @@ void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip)
 void pop_shack(TCGv_ptr cpu_env, TCGv _next_eip)
 {
     // fprintf(stderr, "pop_shack\n");
-
     TCGv next_eip = tcg_temp_local_new();
-    tcg_gen_addi_tl(next_eip, _next_eip, 0);
+    tcg_gen_mov_tl(next_eip, _next_eip);
+    tcg_temp_free(_next_eip);
+
     TCGv_ptr shack_top_p = tcg_temp_local_new_ptr();
     TCGv_ptr shack_p = tcg_temp_local_new_ptr();
     tcg_gen_ld_ptr(shack_top_p, cpu_env, offsetof(CPUState, shack_top));
     tcg_gen_ld_ptr(shack_p, cpu_env, offsetof(CPUState, shack));
-
     int end_label = gen_new_label();
     tcg_gen_brcond_ptr(TCG_COND_EQ, shack_top_p, shack_p, end_label);
     // if shack_top == shack, then shack is empty, do nothing
     tcg_temp_free_ptr(shack_p);
+
     tcg_gen_subi_tl(shack_top_p, shack_top_p, sizeof(ShackSlot));
     tcg_gen_st_ptr(shack_top_p, cpu_env, offsetof(CPUState, shack_top));
     TCGv source_addr = tcg_temp_local_new();
     tcg_gen_ld_tl(source_addr, shack_top_p, offsetof(ShackSlot, source_addr));
 
-    int end_label_shack_miss = gen_new_label();
-    tcg_gen_brcond_ptr(TCG_COND_NE, source_addr, next_eip, end_label_shack_miss);
+    tcg_gen_brcond_ptr(TCG_COND_NE, source_addr, next_eip, end_label);
     // Shack hit
-    tcg_temp_free_tl(source_addr);
-    tcg_temp_free_ptr(next_eip);
+    tcg_temp_free(source_addr);
+    tcg_temp_free(next_eip);
     TCGv_ptr target_addr = tcg_temp_local_new_ptr();
     tcg_gen_ld_ptr(target_addr, shack_top_p, offsetof(ShackSlot, target_addr));
     tcg_gen_ld_ptr(target_addr, target_addr, 0);
+    tcg_temp_free_ptr(shack_top_p);
+    {
     TCGv zero = tcg_const_tl(0);
-    tcg_gen_brcond_ptr(TCG_COND_EQ, target_addr, zero, end_label_shack_miss);
+    tcg_gen_brcond_ptr(TCG_COND_EQ, target_addr, zero, end_label);
     tcg_temp_free(zero);
+    }
     *gen_opc_ptr++ = INDEX_op_jmp;
     *gen_opparam_ptr++ = GET_TCGV_PTR(target_addr);
     tcg_temp_free_ptr(target_addr);
-    tcg_temp_free_ptr(shack_top_p);
 
-    gen_set_label(end_label_shack_miss);
     gen_set_label(end_label);
 }
 

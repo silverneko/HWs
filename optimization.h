@@ -49,7 +49,7 @@ typedef struct list_head list_t;
 typedef struct shadow_pair
 {
     target_ulong guest_eip;
-    unsigned long *shadow_slot;
+    void **shadow_slot;
     struct shadow_pair *next, *prev;
 } shadow_pair;
 
@@ -59,8 +59,8 @@ typedef struct {
 } ShackSlot;
 
 void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip);
-inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot);
-unsigned long lookup_shadow_ret_addr(CPUState *env, target_ulong pc);
+// inline void insert_unresolved_eip(CPUState *env, target_ulong next_eip, unsigned long *slot);
+// unsigned long lookup_shadow_ret_addr(CPUState *env, target_ulong pc);
 void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip);
 void pop_shack(TCGv_ptr cpu_env, TCGv next_eip);
 
