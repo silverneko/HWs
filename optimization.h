@@ -74,13 +74,16 @@ void pop_shack(TCGv_ptr cpu_env, TCGv next_eip);
 struct jmp_pair
 {
     target_ulong guest_eip;
-    TranslationBlock *tb;
+    // TranslationBlock *tb;
+    void *target_addr;
 };
 
 struct ibtc_table
 {
     struct jmp_pair htable[IBTC_CACHE_SIZE];
 };
+
+typedef struct ibtc_table ibtc_table;
 
 int init_optimizations(CPUState *env);
 void update_ibtc_entry(TranslationBlock *tb);

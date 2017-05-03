@@ -13,7 +13,19 @@
 
 extern uint8_t *optimization_ret_addr;
 
-#define MEMORY_ARENA_CHUNK_SIZE (1 << 24)
+// #define NOSHACK
+#define NOIBTC
+
+#ifdef NOSHACK
+
+void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip) {}
+void push_shack(CPUState *env, TCGv_ptr cpu_env, target_ulong next_eip) {}
+void pop_shack(TCGv_ptr cpu_env, TCGv next_eip) {}
+void helper_shack_flush(CPUState *env) {}
+
+#else
+
+#define MEMORY_ARENA_CHUNK_SIZE (1 << 20)
 typedef struct MemoryArena {
     uint8_t chunk[MEMORY_ARENA_CHUNK_SIZE];
     unsigned int offset;
@@ -71,6 +83,7 @@ static inline void shack_init(CPUState *env)
  */
 void shack_set_shadow(CPUState *env, target_ulong guest_eip, unsigned long *host_eip)
 {
+    // TODO (FIXME) Perhaps dropping this step altogether is better
     shadow_pair *it = shadow_hash_list[guest_eip & SHADOW_HASH_MASK];
     while (it != NULL) {
         if (it->guest_eip == guest_eip) {
@@ -263,10 +276,25 @@ void pop_shack(TCGv_ptr cpu_env, TCGv _next_eip)
     gen_set_label(end_label);
 }
 
+#endif // NOSHACK
+
 /*
  * Indirect Branch Target Cache
  */
 __thread int update_ibtc;
+
+#ifdef NOIBTC
+
+void *helper_lookup_ibtc(target_ulong guest_eip) {
+    return optimization_ret_addr;
+}
+void update_ibtc_entry(TranslationBlock *tb) {}
+static inline void ibtc_init(CPUState *env) {}
+
+#else
+
+ibtc_table *ibtc;
+target_ulong update_guest_eip;
 
 /*
  * helper_lookup_ibtc()
@@ -275,7 +303,16 @@ __thread int update_ibtc;
  */
 void *helper_lookup_ibtc(target_ulong guest_eip)
 {
-    return optimization_ret_addr;
+    struct jmp_pair jmpp = ibtc->htable[guest_eip & IBTC_CACHE_MASK];
+    if (jmpp.guest_eip == guest_eip) {
+        // fprintf(stderr, "ibtc hit\n");
+        return jmpp.target_addr;
+    } else {
+        // fprintf(stderr, "ibtc miss: %u %u\n", jmpp.guest_eip, guest_eip);
+        update_guest_eip = guest_eip;
+        update_ibtc = 1;
+        return optimization_ret_addr;
+    }
 }
 
 /*
@@ -284,6 +321,11 @@ void *helper_lookup_ibtc(target_ulong guest_eip)
  */
 void update_ibtc_entry(TranslationBlock *tb)
 {
+    update_ibtc = 0;
+    ibtc->htable[update_guest_eip & IBTC_CACHE_MASK] = (struct jmp_pair) {
+        .guest_eip = update_guest_eip,
+        .target_addr = tb->tc_ptr
+    };
 }
 
 /*
@@ -292,7 +334,12 @@ void update_ibtc_entry(TranslationBlock *tb)
  */
 static inline void ibtc_init(CPUState *env)
 {
+    ibtc = (ibtc_table *) malloc(sizeof(ibtc_table));
+    memset(ibtc, 0, sizeof(ibtc_table));
+    update_ibtc = 0;
 }
+
+#endif // NOIBTC
 
 /*
  * init_optimizations()
@@ -300,8 +347,12 @@ static inline void ibtc_init(CPUState *env)
  */
 int init_optimizations(CPUState *env)
 {
+#ifndef NOSHACK
     shack_init(env);
+#endif
+#ifndef NOIBTC
     ibtc_init(env);
+#endif
 
     return 0;
 }
