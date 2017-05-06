@@ -13,8 +13,8 @@
 
 extern uint8_t *optimization_ret_addr;
 
-// #define NOSHACK
-#define NOIBTC
+//#define NOSHACK
+//#define NOIBTC
 
 #ifdef NOSHACK
 
