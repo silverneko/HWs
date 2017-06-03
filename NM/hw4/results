@@ -1,0 +1,27 @@
+naive:
+Time elapsed: 4135.876455 seconds
+
+blas:
+Time elapsed: 351.584292 seconds
+
+atlas:
+1 thread
+Time elapsed: 28.127461 seconds
+8 thread
+Time elapsed: 7.738569 seconds
+
+openblas:
+1 thread
+Time elapsed: 19.959044 seconds
+2 thread
+Time elapsed: 10.300960 seconds
+4 thread
+Time elapsed: 5.895513 seconds
+
+mkl:
+1 thread
+Time elapsed: 18.709850 seconds
+2 thread
+Time elapsed: 9.581539 seconds
+4 thread
+Time elapsed: 5.727426 seconds
