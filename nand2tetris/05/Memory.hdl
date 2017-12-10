@@ -1,0 +1,63 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/05/Memory.hdl
+
+/**
+ * The complete address space of the Hack computer's memory,
+ * including RAM and memory-mapped I/O. 
+ * The chip facilitates read and write operations, as follows:
+ *     Read:  out(t) = Memory[address(t)](t)
+ *     Write: if load(t-1) then Memory[address(t-1)](t) = in(t-1)
+ * In words: the chip always outputs the value stored at the memory 
+ * location specified by address. If load==1, the in value is loaded 
+ * into the memory location specified by address. This value becomes 
+ * available through the out output from the next time step onward.
+ * Address space rules:
+ * Only the upper 16K+8K+1 words of the Memory chip are used. 
+ * Access to address>0x6000 is invalid. Access to any address in 
+ * the range 0x4000-0x5FFF results in accessing the screen memory 
+ * map. Access to address 0x6000 results in accessing the keyboard 
+ * memory map. The behavior in these addresses is described in the 
+ * Screen and Keyboard chip specifications given in the book.
+ */
+
+CHIP Memory {
+    IN in[16], load, address[15];
+    OUT out[16];
+
+    PARTS:
+    ALU(x[0..14]=address, x[15]=false, y[0..12]=false, y[13..14]=true, y[15]=false,
+      zx=false, nx=true,
+      zy=false, ny=false,
+      f=true, no=true,
+      zr=eq6000, ng=lt6000
+    );
+    Or(a=eq6000, b=lt6000, out=le6000);
+    Not(in=le6000, out=gt6000);
+    ALU(x[0..14]=address, x[15]=false, y[0..13]=false, y[14]=true, y[15]=false,
+      zx=false, nx=true,
+      zy=false, ny=false,
+      f=true, no=true,
+      zr=eq4000, ng=lt4000
+    );
+    Or(a=eq4000, b=lt4000, out=le4000);
+    Not(in=le4000, out=gt4000);
+
+    Or(a=eq6000, b=false, out=isKB);
+    Not(in=lt4000, out=ge4000);
+    Or(a=lt6000, b=false, out=le5FFF);
+    And(a=ge4000, b=le5FFF, out=isScreen);
+    Or(a=lt4000, b=false, out=isRAM);
+
+    And(a=load, b=isScreen, out=loadScreen);
+    And(a=load, b=isRAM, out=loadRAM);
+
+    Keyboard(out=kbout);
+    Screen(in=in, address=address[0..12], load=loadScreen, out=screenout);
+    RAM16K(in=in, address=address[0..13], load=loadRAM, out=ramout);
+
+    Mux16(sel=isKB, b=kbout, a=else1, out=out);
+    Mux16(sel=isScreen, b=screenout, a=else2, out=else1);
+    Mux16(sel=isRAM, b=ramout, a=false, out=else2);
+}
