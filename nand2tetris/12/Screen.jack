@@ -1,0 +1,159 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Screen.jack
+
+/**
+ * A library of functions for displaying graphics on the screen.
+ * The Hack physical screen consists of 512 rows (indexed 0..511, top to bottom)
+ * of 256 pixels each (indexed 0..255, left to right). The top left pixel on 
+ * the screen is indexed (0,0).
+ */
+class Screen {
+    static int color, screen;
+
+    /** Initializes the Screen. */
+    function void init() {
+      let color = 1;
+      let screen = 16384;
+      do Screen.clearScreen();
+      return;
+    }
+
+    /** Erases the entire screen. */
+    function void clearScreen() {
+      var int i;
+      let i = 0;
+      while (i < 8192) {
+        let screen[i] = 0;
+        let i = i + 1;
+      }
+      return;
+    }
+
+    /** Sets the current color, to be used for all subsequent drawXXX commands.
+     *  Black is represented by true, white by false. */
+    function void setColor(boolean b) {
+      if (b) {
+        let color = 1;
+      } else {
+        let color = 0;
+      }
+      return;
+    }
+
+    /** Draws the (x,y) pixel, using the current color. */
+    function void drawPixel(int x, int y) {
+      var int p, o, i, m, n;
+      let p = (y * 32) + (x / 16);
+      let o = x - ((x / 16) * 16);
+
+      let i = 0;
+      let m = 1;
+      let n = color;
+      while (i < o) {
+        let m = m + m;
+        let n = n + n;
+        let i = i + 1;
+      }
+      let m = ~m;
+      let screen[p] = (screen[p] & m) | n;
+      return;
+    }
+
+    /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
+    function void drawLine(int x1, int y1, int x2, int y2) {
+      var int i, j, dx, dy, t;
+      let dx = x2 - x1;
+      let dy = y2 - y1;
+      let i = 0;
+      let j = 0;
+      if ((dx = 0) & (dy = 0)) {
+        do Screen.drawPixel(x1, y1);
+        return;
+      }
+      if (dx = 0) {
+        if (dy < 0) {
+          let t = x1;
+          let x1 = x2;
+          let x2 = t;
+          let t = y1;
+          let y1 = y2;
+          let y2 = t;
+          let dx = -dx;
+          let dy = -dy;
+        }
+        while (j < (dy+1)) {
+          let i = (j * dx) / dy;
+          do Screen.drawPixel(x1 + i, y1 + j);
+          let j = j + 1;
+        }
+      } else {
+        if (dx < 0) {
+          let t = x1;
+          let x1 = x2;
+          let x2 = t;
+          let t = y1;
+          let y1 = y2;
+          let y2 = t;
+          let dx = -dx;
+          let dy = -dy;
+        }
+        while (i < (dx+1)) {
+          let j = (i * dy) / dx;
+          do Screen.drawPixel(x1 + i, y1 + j);
+          let i = i + 1;
+        }
+      }
+      return;
+    }
+
+    /** Draws a filled rectangle whose top left corner is (x1, y1)
+     * and bottom right corner is (x2,y2), using the current color. */
+    function void drawRectangle(int x1, int y1, int x2, int y2) {
+      var int i, j;
+      let i = x1;
+      while (i < (x2+1)) {
+        let j = y1;
+        while (j < (y2+1)) {
+          do Screen.drawPixel(i, j);
+          let j = j + 1;
+        }
+        let i = i + 1;
+      }
+      return;
+    }
+
+    /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
+    function void drawCircle(int x, int y, int r) {
+      var int dx, dy, r2;
+      var int i, j;
+      let r2 = r*r;
+      let dx = -r;
+      while (dx < (r+1)) {
+        let dy = -r;
+        while (dy < (r+1)) {
+          if (((dx * dx) + (dy * dy)) < (r2 + 1)) {
+            let i = x + dx;
+            let j = y + dy;
+            if (dx > 0) {
+              let i = i - 1;
+            }
+            if (dx < 0) {
+              let i = i + 1;
+            }
+            if (dy > 0) {
+              let j = j - 1;
+            }
+            if (dy < 0) {
+              let j = j + 1;
+            }
+            do Screen.drawPixel(i, j);
+          }
+          let dy = dy+1;
+        }
+        let dx = dx+1;
+      }
+      return;
+    }
+}
