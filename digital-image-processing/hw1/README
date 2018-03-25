@@ -1,0 +1,19 @@
+Digital Image Processing Homework #1
+2018/3/26
+Name: 江懿友
+ID: B03902082
+Email: big2632@gmail.com
+
+OS: openSUSE tumbleweed
+Compiler: gcc 7.3.1
+
+Input images must be in a subfolder "raw", such that folder "raw" contains "sample1.raw", "sample2.raw", "sample3.raw" and "sample4.raw".
+To compile and execute the problems "warm-up problem", "problem 1" and "problem 2", execute the command:
+
+$ make
+
+Then the binaries will be compiled and executed, result images are output into the folder "raw".
+
+For "warm-up problem", the output image names are "raw/warm_up.out.raw".
+For "problem 1", the output image names are "raw/problem2.D.raw", "raw/problem2.H.raw", "raw/problem2.L.raw", "raw/problem2.f.log.raw", "raw/problem2.f.invlog.raw", "raw/problem2.f.powlaw.raw".
+For "problem 2", the output image names are

@@ -4,22 +4,29 @@ import argparse
 import os
 from math import sqrt
 from PIL import Image
+import numpy as np
 
 parser = argparse.ArgumentParser(
-    description='converts gray scale raw image to bmp image',
+    description='converts gray scale raw image to png image',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
-parser.add_argument('infile', metavar='infile', help='input filename')
+parser.add_argument('infile', nargs='+', help='input filename')
 
 args = parser.parse_args()
 
-with open(args.infile, 'rb') as fd:
-    raw_data = fd.read()
+for file in args.infile:
+    with open(file, 'rb') as fd:
+        raw_data = fd.read()
 
-height = width = int(sqrt(len(raw_data)))
-assert(height * width == len(raw_data))
+    height = width = int(sqrt(len(raw_data)))
+    if height * width == len(raw_data):
+        img = Image.frombytes('L', (height, width), raw_data)
+    else:
+        height = width = int(sqrt(len(raw_data) / 3))
+        assert(height * width * 3 == len(raw_data))
+        raw_data = np.frombuffer(raw_data, dtype='ubyte')
+        raw_data = np.reshape(raw_data, (3, height, width))
+        img = Image.fromarray(np.transpose(raw_data, (1, 2, 0)), 'RGB')
 
-img = Image.frombytes('L', (height, width), raw_data)
-
-filename, ext = os.path.splitext(args.infile)
-img.save(filename + '.bmp')
+    filename, ext = os.path.splitext(file)
+    img.save(filename + '.png')
