@@ -35,7 +35,7 @@ int main (int argc, char *argv[]) {
     }
   }
 
-  save_raw("raw/problem2.D.raw", N*N, data_D);
+  save_raw("raw/problem1.D.raw", N*N, data_D);
 
   // (b) Output histogram
   unsigned int hist1[256], hist2[256];
@@ -65,7 +65,7 @@ int main (int argc, char *argv[]) {
       data_H[i][j] = CDF[data_D[i][j]];
     }
   }
-  save_raw("raw/problem2.H.raw", N*N, data_H);
+  save_raw("raw/problem1.H.raw", N*N, data_H);
 
   // (d) Local histo eq
   int radius = 30;
@@ -86,7 +86,7 @@ int main (int argc, char *argv[]) {
       data_L[i][j] = CDF[data_D[i][j]];
     }
   }
-  save_raw("raw/problem2.L.raw", N*N, data_L);
+  save_raw("raw/problem1.L.raw", N*N, data_L);
 
   // (e) Histogram of H and L
   histogram(data_H, N*N, hist1);
@@ -111,7 +111,7 @@ int main (int argc, char *argv[]) {
   for (int i = 0; i < N*N; ++i) {
     data_f[i] = min(255, max(0, int(255 * data_out[i])));
   }
-  save_raw("raw/problem2.f.log.raw", N*N, data_f);
+  save_raw("raw/problem1.f.log.raw", N*N, data_f);
   histogram(data_f, N*N, hist1);
   printf("histogram of log:\n");
   for (int i = 0; i < 256; ++i)
@@ -121,7 +121,7 @@ int main (int argc, char *argv[]) {
   inv_log_transform(log(10), data_in_scaled, N*N, data_out);
   for (int i = 0; i < N*N; ++i)
     data_f[i] = min(255, max(0, int(255 * data_out[i])));
-  save_raw("raw/problem2.f.invlog.raw", N*N, data_f);
+  save_raw("raw/problem1.f.invlog.raw", N*N, data_f);
   histogram(data_f, N*N, hist1);
   printf("histogram of invlog:\n");
   for (int i = 0; i < 256; ++i)
@@ -131,7 +131,7 @@ int main (int argc, char *argv[]) {
   power_law(0.7, data_in_scaled, N*N, data_out);
   for (int i = 0; i < N*N; ++i)
     data_f[i] = min(255, max(0, int(255 * data_out[i])));
-  save_raw("raw/problem2.f.powlaw.raw", N*N, data_f);
+  save_raw("raw/problem1.f.powlaw.raw", N*N, data_f);
   histogram(data_f, N*N, hist1);
   printf("histogram of power law:\n");
   for (int i = 0; i < 256; ++i)

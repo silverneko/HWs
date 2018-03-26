@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  save_raw("raw/warm_up.out.raw", N*N, data_out);
+  save_raw("raw/warm_up.B.raw", N*N, data_out);
 
   return 0;
 }

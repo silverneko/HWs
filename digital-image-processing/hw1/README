@@ -14,6 +14,6 @@ $ make
 
 Then the binaries will be compiled and executed, result images are output into the folder "raw".
 
-For "warm-up problem", the output image names are "raw/warm_up.out.raw".
-For "problem 1", the output image names are "raw/problem2.D.raw", "raw/problem2.H.raw", "raw/problem2.L.raw", "raw/problem2.f.log.raw", "raw/problem2.f.invlog.raw", "raw/problem2.f.powlaw.raw".
+For "warm-up problem", the output image names are "raw/warm_up.B.raw".
+For "problem 1", the output image names are "raw/problem1.D.raw", "raw/problem1.H.raw", "raw/problem1.L.raw", "raw/problem1.f.log.raw", "raw/problem1.f.invlog.raw", "raw/problem1.f.powlaw.raw".
 For "problem 2", the output image names are
