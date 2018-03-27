@@ -16,4 +16,4 @@ Then the binaries will be compiled and executed, result images are output into t
 
 For "warm-up problem", the output image names are "raw/warm_up.B.raw".
 For "problem 1", the output image names are "raw/problem1.D.raw", "raw/problem1.H.raw", "raw/problem1.L.raw", "raw/problem1.f.log.raw", "raw/problem1.f.invlog.raw", "raw/problem1.f.powlaw.raw".
-For "problem 2", the output image names are
+For "problem 2", the output image names are "raw/problem2.G1.raw", "raw/problem2.G2.raw", "raw/problem2.S1.raw", "raw/problem2.S2.raw", "raw/problem2.RG.raw", "raw/problem2.RS.raw", "raw/problem2.II.raw".
