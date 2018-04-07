@@ -102,7 +102,7 @@ def inv(x, q):
 
 k, v, _ = euclidean(1, 0, s1-s2, 0, 1, q)
 k = k * (h1 - h2) % q
-xr = ((s1 * k - h1)% q)
+xr = (s1 * k - h1) % q
 
 h = int(hashlib.sha1('FLAG').hexdigest(), 16)
 sig_r = fast_pow(g, k, p) % q
