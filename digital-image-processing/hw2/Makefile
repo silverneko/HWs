@@ -8,8 +8,6 @@ all: problem1 problem2
 	./problem1b raw/sample2.raw problem1b.out
 	./problem2a raw/sample3.raw problem2a.out
 	./problem2b problem2a.out.raw problem2b.out
-	./convert_raw.py raw/*.raw
-	./convert_raw.py *.raw
 
 problem1: problem1a.cpp problem1b.cpp
 	$(CXX) $(CFLAGS) problem1a.cpp -o problem1a

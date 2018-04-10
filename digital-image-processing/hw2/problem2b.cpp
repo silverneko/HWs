@@ -20,8 +20,9 @@ float clip(float v, float l, float r) {
 void pad(void *I, int ni, int nw, void *O);
 void filter(void *I, int ni, void *K, int nk, void *O);
 
-void matmul(void *A, int n, int m, void *B, int k, void *C);
-void matinv(void *A, int n, void *B);
+void polynomial(double x, double y, double *p);
+void matmul(void *A, int n, int m, void *B, int r, void *C);
+void linearSolve(void *A, int n, void *Y, int m, void *X);
 
 // Usage: ./problem2b [infile] [outfile]
 int main (int argc, char *argv[]) {
@@ -37,8 +38,41 @@ int main (int argc, char *argv[]) {
     for (int j = 0; j < N; ++j)
       data_in[i][j] = data_raw[i][j] / 255.0;
 
-  int n = 22, m = 21;
-  float Y[n][2] = {
+  float G[N][N];
+  float dx = 8, dy = 8;
+  float sx = 511.0 / 500, sy = 511.0 / 500;
+  float xa = 20, ya = 20;
+  float xcycle = 2 * M_PI / 160;
+  float ycycle = 2 * M_PI / 250;
+  float xphase = 0;
+  float yphase = 0;
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < N; ++j) {
+      float u = sx * (dx + i + xa * sin(xphase + xcycle * j));
+      float v = sy * (dy + j + ya * sin(yphase + ycycle * i));
+
+      if (u < 0 || u > N-1 || v < 0 || v > N-1) {
+        G[i][j] = 0;
+        continue;
+      }
+      int x = ceil(u), y = ceil(v);
+      float a = u - x, b = v - y;
+#define interp(l, r, a) ((l) * (1.0 - (a)) + (r) * (a))
+      float t1 = interp(data_in[x][y], data_in[x+1][y], a);
+      float t2 = interp(data_in[x][y+1], data_in[x+1][y+1], a);
+      G[i][j] = interp(t1, t2, b);
+      G[i][j] = data_in[x][y];
+    }
+  }
+
+  unsigned char out[N][N];
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < N; ++j)
+      out[i][j] = 255 * clip(G[i][j], 0, 1);
+  save_raw(outfile + ".raw", N*N, out);
+  /*
+  int n = 23, m = 21;
+  double Y[n][2] = {
     {0, 0},
     {0, 156},
     {0, 227},
@@ -60,16 +94,17 @@ int main (int argc, char *argv[]) {
     {511, 0},
     {411, 0},
     {311, 0},
-    {211, 0}
+    {211, 0},
+    {111, 0}
   };
-  float px[n][2] = {
-    {-20, -20},
-    {10, 139},
-    {-10, 211},
-    {10, 283},
-    {-10, 355},
-    {10, 427},
-    {-10, 499},
+  double px[n][2] = {
+    {-50, -50},
+    {50, 139},
+    {-50, 211},
+    {50, 283},
+    {-50, 355},
+    {50, 427},
+    {-50, 499},
     {100, 489},
     {200, 511},
     {300, 489},
@@ -81,45 +116,132 @@ int main (int argc, char *argv[]) {
     {491, 211},
     {511, 139},
     {491, 68},
-    {511, -10},
-    {400, 10},
-    {300, -10},
-    {200, 10}
+    {511, -50},
+    {400, 50},
+    {300, -50},
+    {200, 50},
+    {100, -50}
   };
 
-  float X[n][m], XT[m][n];
+  double X[n][m], XT[m][n];
   for (int i = 0; i < n; ++i) {
-    float x = px[i][0], y = px[i][1];
-    int pos = 1;
-    X[i][0] = 1;
-    for (int j = 1; j <= 5; ++j) {
-      for (int k = 0; k < j; ++k)
-        X[i][pos+k] = X[i][pos-j+k] * x;
-      X[i][pos+j] = X[i][pos-1] * y;
-      pos += j+1;
-    }
+    double x = px[i][0], y = px[i][1];
+    polynomial(x, y, X[i]);
   }
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < m; ++j)
       XT[j][i] = X[i][j];
 
-  float XTX[m][m], XTXinv[m][m], B[m][n], M[m][2];
+  double XTX[m][m], XTY[m][2], M[m][2];
   matmul(XT, m, n, X, m, XTX);
-  matinv(XTX, m, XTXinv);
-  matmul(XTXinv, m, m, XT, n, B);
-  matmul(B, m, n, Y, 2, M);
+  matmul(XT, m, n, Y, 2, XTY);
+  linearSolve(XTX, m, XTY, 2, M);
+
   // M is the reverse wrap coefficient
   // G(x, y) = F(u, v)
   // where (u, v) = M x P(x, y), F = input, G = output, P = polynomial
+  float G[N][N];
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < N; ++j) {
+      double p[m], uv[2];
+      polynomial(i, j, p);
+      matmul(p, 1, m, M, 2, uv);
+      double u = uv[0], v = uv[1];
+      if (u < 0 || u > N-1 || v < 0 || v > N-1) {
+        G[i][j] = 0;
+        continue;
+      }
+      // G[i][j] = 1;
+      G[i][j] = data_in[int(u)][int(v)];
+    }
+  }
 
   unsigned char out[N][N];
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < N; ++j)
+      out[i][j] = 255 * clip(G[i][j], 0, 1);
   save_raw(outfile + ".raw", N*N, out);
-
+  */
   return 0;
 }
 
-void matmul(void *A, int n, int m, void *B, int k, void *C);
-void matinv(void *A, int n, void *B);
+void polynomial(double x, double y, double *p) {
+  int pos = 1;
+  /*
+  double a[4] = {1, x, x*x, x*x*x};
+  double b[4] = {1, y, y*y, y*y*y};
+  for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < 4; ++j)
+      p[i*4+j] = a[i]*b[j];
+  */
+  p[0] = 1;
+  for (int j = 1; j <= 5; ++j) {
+    for (int k = 0; k < j; ++k)
+      p[pos+k] = p[pos-j+k] * x;
+    p[pos+j] = p[pos-1] * y;
+    pos += j+1;
+  }
+}
+
+void matmul(void *A, int n, int m, void *B, int r, void *C) {
+  for (int i = 0; i < n; ++i)
+    for (int j = 0; j < r; ++j) {
+      double accu = 0;
+      for (int k = 0; k < m; ++k)
+        // accu += A[i][k] * B[k][j];
+        accu += ((double*)A)[i * m + k] * ((double*)B)[k * r + j];
+      // C[i][j] = accu;
+      ((double*)C)[i * r + j] = accu;
+    }
+}
+
+// solve AX = Y for X
+void linearSolve(void *A_, int n, void *Y_, int m, void *X_) {
+#define A(i, j) (((double*)A_)[n * (i) + (j)])
+#define X(i, j) (((double*)X_)[m * (i) + (j)])
+#define Y(i, j) (((double*)Y_)[m * (i) + (j)])
+  // first do pivoted LU factorization on A
+  int piv[n];
+  for (int k = 0; k < n-1; ++k) {
+    int p = k;
+    for (int i = k+1; i < n; ++i)
+      if (fabs(A(i, k)) > fabs(A(p, k)))
+        p = i;
+    piv[k] = p;
+    for (int i = 0; i < n; ++i)
+      swap(A(k, i), A(piv[k], i));
+    if (A(k, k) != 0) {
+      for (int i = k+1; i < n; ++i)
+        A(i, k) = A(i, k) / A(k, k);
+      for (int i = k+1; i < n; ++i)
+        for (int j = k+1; j < n; ++j)
+          A(i, j) = A(i, j) - A(i, k) * A(k, j);
+    }
+  }
+  // PA = LU, solve LUX = PY
+  for (int i = 0; i < n-1; ++i)
+    for (int j = 0; j < m; ++j)
+      swap(Y(i, j), Y(piv[i], j));
+  // first solve LB = PY for B, store B in X
+  for (int j = 0; j < m; ++j)
+    for (int i = 0; i < n; ++i) {
+      double accu = 0;
+      for (int k = 0; k < i; ++k)
+        accu += A(i, k) * X(k, j);
+      X(i, j) = Y(i, j) - accu;
+    }
+  // next solve UX = B for X, B is stored in X, so update X inplace
+  for (int j = 0; j < m; ++j)
+    for (int i = n-1; i >= 0; --i) {
+      double accu = 0;
+      for (int k = i+1; k < n; ++k)
+        accu += A(i, k) * X(k, j);
+      X(i, j) = (X(i, j) - accu) / A(i, i);
+    }
+#undef A
+#undef X
+#undef Y
+}
 
 #define F(x, y) (((float*)I)[ni * (x) + (y)])
 #define G(x, y) (((float*)O)[no * (x) + (y)])
