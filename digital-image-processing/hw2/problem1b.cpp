@@ -39,7 +39,7 @@ int main (int argc, char *argv[]) {
   float rot = 31 * M_PI / 180;
   float mag = (1.0 / 255) * 25;
   //float step = (M_PI * 2) * 0.06;
-  float step = 0.39;
+  float step = M_PI * 2 / 16;
   float phase = M_PI / 4 * 0;
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < N; ++j) {
