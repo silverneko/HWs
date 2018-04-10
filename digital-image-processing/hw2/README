@@ -23,7 +23,7 @@ raw
 If the input files are located elsewhere, then the Makefile will need to be
 manually edited to change the input file's path.
 
-There is four source files: problem1a.cpp, problem1b.cpp, problem2a.cpp and
+There are four source files: problem1a.cpp, problem1b.cpp, problem2a.cpp and
 problem2b.cpp which correspond to the four different subproblems (exclude the
 bonus problem).
 The four programs' usages are:
