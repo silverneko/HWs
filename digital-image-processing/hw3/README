@@ -1,0 +1,42 @@
+Digital Image Processing Homework #3
+2018/5/2
+Name: 江懿友
+ID: B03902082
+Email: big2632@gmail.com
+
+OS: openSUSE tumbleweed
+Compiler: gcc 7.3.1
+
+Execute "ulimit -s unlimited" first, so you don't get a stackoverflow later.
+Execute "make" to compile and execute each problem.
+
+The input images should be put in a subfolder "raw", so the folder tree
+should look like this:
+
+raw
+├── sample1.raw
+├── sample2.raw
+└── sample3.raw
+
+If the input files are located elsewhere, then the Makefile will need to be
+manually edited to change the input file's path.
+
+There are five source files:
+
+  problem1a.cpp
+  problem1b.cpp
+  problem1c.cpp
+  problem2a.cpp
+  problem2b.cpp
+
+which correspond to the five different subproblems (exclude the
+bonus problem).
+The programs' usages are:
+
+./problem1a raw/sample1.raw B.raw
+./problem1b raw/sample1.raw C.raw
+./problem1c raw/sample1.raw S.raw
+./problem2a raw/sample2.raw K.raw
+./problem2b raw/sample2.raw K.raw E.raw
+
+Additionally, one of problem2b's input must be problem2a's output.
