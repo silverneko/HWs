@@ -1,0 +1,37 @@
+Digital Image Processing Homework #4
+2018/5/29
+Name: 江懿友
+ID: B03902082
+Email: big2632@gmail.com
+
+OS: openSUSE tumbleweed
+Compiler: gcc 7.3.1
+
+Execute "ulimit -s unlimited" first, so you don't get a stackoverflow later.
+Execute "make" to compile and execute each problem.
+
+The input images should be put in a subfolder "raw", so the folder tree
+should look like this:
+
+raw
+├── sample1.raw
+├── sample2.raw
+└── TrainingSet.raw
+
+If the input files are located elsewhere, then the Makefile will need to be
+manually edited to change the input file's path.
+
+There are 2 source files:
+
+  preprocess_trainingset.cpp
+  ocr.cpp
+
+The programs' usages are:
+
+./preprocess_trainingset raw/TrainingSet.raw S.raw > model
+./ocr model raw/sample1.raw
+./ocr model raw/sample2.raw
+
+./preprocess_trainingset preprocesses the TrainingSet (denoise / segmentation).
+./ocr uses the preprocessed TrainingSet characters to predict CAPTCHA.
+   Prediction results are printed to stdout.
