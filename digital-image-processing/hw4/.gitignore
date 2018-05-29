@@ -1,0 +1,6 @@
+*.zip
+*.raw
+*.png
+model
+preprocess_trainingset
+ocr
